@@ -1,0 +1,19 @@
+name: Deploy docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+
+jobs:
+  deploy-mkdocs:
+    uses: msflib/devops/.github/workflows/deploy-openwiki-mkdocs.yml@dev
+    with:
+      python-version: '3.12'
+      destination-dir: 'fastapi-template'
+    secrets: inherit

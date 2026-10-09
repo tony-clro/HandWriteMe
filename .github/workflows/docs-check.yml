@@ -1,0 +1,19 @@
+name: Docs check
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "requirements-docs.txt"
+
+jobs:
+  build:
+    runs-on: ${{ vars.TASK_RUNNER || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements-docs.txt
+      - run: mkdocs build --strict
