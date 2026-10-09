@@ -9,18 +9,27 @@ class ApiClient {
 
   determineBaseUrl() {
     if (window.HANDWRITE_API_URL) {
-      return window.HANDWRITE_API_URL.replace(/\/+$/, '');
+      const url = window.HANDWRITE_API_URL.replace(/\/+$/, '');
+      return url.endsWith('/api/v1') ? url : `${url}/api/v1`;
     }
-    const host = window.location.hostname;
+    const host = window.location.hostname || '127.0.0.1';
     const port = window.location.port;
-    const protocol = window.location.protocol;
+    const protocol = window.location.protocol || 'http:';
     
-    // If frontend is hosted directly by FastAPI
-    if (port === '8000' || port === '' || !port) {
+    // If frontend is hosted directly by FastAPI on port 8000
+    if (port === '8000') {
       return `${protocol}//${window.location.host}/api/v1`;
     }
-    // Fallback for standalone frontend dev server
-    return 'http://localhost:8000/api/v1';
+    // Standalone frontend dev servers (Live Server on 5500, Vite 5173, etc.)
+    if (port === '5500' || port === '3000' || port === '5173' || port === '8080') {
+      return `${protocol}//${host}:8000/api/v1`;
+    }
+    // Production deployment on standard ports (80 / 443) served directly by backend
+    if (port === '' || !port) {
+      return `${protocol}//${window.location.host}/api/v1`;
+    }
+    // Fallback for standalone server on any other port
+    return `${protocol}//${host}:8000/api/v1`;
   }
 
   async request(endpoint, options = {}) {

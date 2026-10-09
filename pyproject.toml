@@ -1,8 +1,15 @@
-[tool.poetry]
+[project]
 name = "msf-fastapi"
 version = "0.1.0"
 description = "MSF FastAPI Backend"
-authors = ["Aniebiet Udoh <almaudoh@gmail.com>"]
+authors = [
+    { name = "Aniebiet Udoh", email = "almaudoh@gmail.com" }
+]
+requires-python = ">=3.10,<3.15"
+dynamic = ["dependencies"]
+
+
+[tool.poetry]
 package-mode = false
 
 [tool.poetry.dependencies]
@@ -24,6 +31,7 @@ tenacity = "^8.2"
 langchain-google-genai = "^4.2.7"
 email-validator = "^2.3.0"
 pypdf = "^6.20.0"
+
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.4"

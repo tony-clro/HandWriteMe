@@ -143,6 +143,29 @@ class HandWriteApp {
       if (this.currentView === 'documents') this.renderDocsTable();
     } catch (e) {
       this.showToast(e.message, 'error');
+      this.renderInitialDataError(e.message);
+    }
+  }
+
+  renderInitialDataError(errorMsg) {
+    document.getElementById('stat-profiles-count').textContent = '—';
+    document.getElementById('stat-samples-count').textContent = '—';
+    document.getElementById('stat-docs-count').textContent = '—';
+    document.getElementById('stat-pages-count').textContent = '—';
+
+    const recentList = document.getElementById('dash-recent-docs-list');
+    if (recentList) {
+      recentList.innerHTML = `<div class="empty-placeholder" style="color: var(--danger-color, #ef4444);">Failed to load recent documents: ${this.escapeHtml(errorMsg)}</div>`;
+    }
+
+    const profilesGrid = document.getElementById('profiles-grid');
+    if (profilesGrid) {
+      profilesGrid.innerHTML = `<div class="empty-placeholder" style="color: var(--danger-color, #ef4444);">Failed to load profiles: ${this.escapeHtml(errorMsg)}</div>`;
+    }
+
+    const docsBody = document.getElementById('docs-table-body');
+    if (docsBody) {
+      docsBody.innerHTML = `<tr><td colspan="6" class="text-center" style="color: var(--danger-color, #ef4444);">Failed to load documents: ${this.escapeHtml(errorMsg)}</td></tr>`;
     }
   }
 
