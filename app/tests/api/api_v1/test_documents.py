@@ -178,3 +178,48 @@ def test_document_database_record_creation(client: TestClient) -> None:
     assert doc["filename"] == "db_test.pdf"
     assert doc["file_size"] == len(VALID_PDF_WITH_TEXT)
     assert doc["status"] == "completed"
+
+
+def test_delete_document(client: TestClient) -> None:
+    upload_res = client.post(
+        f"{settings.API_V1_STR}/documents",
+        files={"file": ("to_delete.pdf", io.BytesIO(VALID_PDF_WITH_TEXT), "application/pdf")},
+    ).json()
+
+    doc_id = upload_res["id"]
+    get_detail = client.get(f"{settings.API_V1_STR}/documents/{doc_id}").json()
+    file_path = get_detail.get("file_path")
+
+    del_res = client.delete(f"{settings.API_V1_STR}/documents/{doc_id}")
+    assert del_res.status_code == 204
+
+    get_after = client.get(f"{settings.API_V1_STR}/documents/{doc_id}")
+    assert get_after.status_code == 404
+
+
+def test_list_documents_with_filters(client: TestClient) -> None:
+    profile_res = client.post(
+        f"{settings.API_V1_STR}/handwriting-profiles",
+        json={"profile_name": "Filter Profile", "description": "For filtering"},
+    ).json()
+    profile_id = profile_res["id"]
+
+    client.post(
+        f"{settings.API_V1_STR}/documents",
+        data={"profile_id": str(profile_id)},
+        files={"file": ("doc_profile.pdf", io.BytesIO(VALID_PDF_WITH_TEXT), "application/pdf")},
+    )
+
+    client.post(
+        f"{settings.API_V1_STR}/documents",
+        files={"file": ("doc_blank.pdf", io.BytesIO(BLANK_PDF_NO_TEXT), "application/pdf")},
+    )
+
+    filter_profile = client.get(f"{settings.API_V1_STR}/documents?profile_id={profile_id}").json()
+    assert len(filter_profile) >= 1
+    assert all(d.get("profile_id") == profile_id for d in filter_profile)
+
+    filter_no_text = client.get(f"{settings.API_V1_STR}/documents?status=no_text").json()
+    assert len(filter_no_text) >= 1
+    assert all(d["status"] == "no_text" for d in filter_no_text)
+

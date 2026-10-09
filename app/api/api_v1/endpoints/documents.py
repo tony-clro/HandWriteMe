@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 import pypdf
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app import actions, models
 from app.api import deps
@@ -130,12 +130,21 @@ def upload_document(
 def list_documents(
     skip: int = 0,
     limit: int = 100,
+    profile_id: int | None = None,
+    status: str | None = None,
     db: Session = Depends(deps.get_session),
 ) -> list[models.DocumentRead]:
     """
     List uploaded documents (without long extracted text).
+    Supports optional filtering by profile_id and status.
     """
-    return actions.document_action.get_multi(session=db, offset=skip, limit=limit)
+    statement = select(models.Document)
+    if profile_id is not None:
+        statement = statement.where(models.Document.profile_id == profile_id)
+    if status is not None:
+        statement = statement.where(models.Document.status == status)
+    statement = statement.offset(skip).limit(limit)
+    return db.exec(statement).all()
 
 
 @router.get(
@@ -181,3 +190,31 @@ def get_document_text(
         page_count=document.page_count,
         extracted_text=document.extracted_text,
     )
+
+
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_document(
+    document_id: int,
+    db: Session = Depends(deps.get_session),
+) -> None:
+    """
+    Delete a document record and remove its stored file from disk.
+    """
+    document = actions.document_action.get(session=db, id=document_id)
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    if document.file_path and os.path.exists(document.file_path):
+        try:
+            os.remove(document.file_path)
+        except OSError:
+            pass
+
+    actions.document_action.delete(session=db, id=document_id)
+

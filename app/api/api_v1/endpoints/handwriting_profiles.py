@@ -77,7 +77,65 @@ def get_handwriting_profile(
     return _get_profile_or_404(profile_id, db)
 
 
+@router.put(
+    "/{profile_id}",
+    response_model=models.HandwritingProfileRead,
+)
+def update_handwriting_profile(
+    profile_id: int,
+    profile_in: models.HandwritingProfileUpdate,
+    db: Session = Depends(deps.get_session),
+) -> models.HandwritingProfile:
+    """
+    Update a handwriting profile.
+    """
+    profile = _get_profile_or_404(profile_id, db)
+    return actions.handwriting_profile_action.update(
+        session=db, model=profile, data=profile_in
+    )
+
+
+@router.delete(
+    "/{profile_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_handwriting_profile(
+    profile_id: int,
+    db: Session = Depends(deps.get_session),
+) -> None:
+    """
+    Delete a handwriting profile and clean up associated samples and disk files.
+    """
+    profile = _get_profile_or_404(profile_id, db)
+
+    # Find and delete associated character sample files
+    statement = select(models.CharacterSample).where(
+        models.CharacterSample.profile_id == profile_id
+    )
+    samples = db.exec(statement).all()
+    for sample in samples:
+        if sample.file_path and os.path.exists(sample.file_path):
+            try:
+                os.remove(sample.file_path)
+            except OSError:
+                pass
+        actions.character_sample_action.delete(session=db, id=sample.id)
+
+    # Disassociate documents
+    doc_statement = select(models.Document).where(
+        models.Document.profile_id == profile_id
+    )
+    documents = db.exec(doc_statement).all()
+    for doc in documents:
+        doc.profile_id = None
+        db.add(doc)
+    db.commit()
+
+    actions.handwriting_profile_action.delete(session=db, id=profile_id)
+
+
 # --- Character Sample Endpoints ---
+
 
 
 @router.post(

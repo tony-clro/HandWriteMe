@@ -69,3 +69,35 @@ def test_create_handwriting_profile_validation_error(client: TestClient) -> None
         json={"description": "Missing profile name"},
     )
     assert response.status_code == 422
+
+
+def test_update_handwriting_profile(client: TestClient) -> None:
+    created = client.post(
+        f"{settings.API_V1_STR}/handwriting-profiles",
+        json={"profile_name": "Original Name", "description": "Original Description"},
+    ).json()
+    profile_id = created["id"]
+
+    update_res = client.put(
+        f"{settings.API_V1_STR}/handwriting-profiles/{profile_id}",
+        json={"profile_name": "Updated Name"},
+    )
+    assert update_res.status_code == 200
+    updated_data = update_res.json()
+    assert updated_data["profile_name"] == "Updated Name"
+    assert updated_data["description"] == "Original Description"
+
+
+def test_delete_handwriting_profile(client: TestClient) -> None:
+    created = client.post(
+        f"{settings.API_V1_STR}/handwriting-profiles",
+        json={"profile_name": "To Be Deleted", "description": "Delete me"},
+    ).json()
+    profile_id = created["id"]
+
+    del_res = client.delete(f"{settings.API_V1_STR}/handwriting-profiles/{profile_id}")
+    assert del_res.status_code == 204
+
+    get_res = client.get(f"{settings.API_V1_STR}/handwriting-profiles/{profile_id}")
+    assert get_res.status_code == 404
+
