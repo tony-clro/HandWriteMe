@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HandWrite Me — Document Processing & Handwriting Profile Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app/static/css/styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h3 id="confirm-title" class="modal-title">Confirm Action</h3>
+      <p id="confirm-message" class="modal-message">Are you sure you want to proceed?</p>
+      <div class="modal-actions">
+        <button id="confirm-cancel-btn" class="btn btn-secondary">Cancel</button>
+        <button id="confirm-ok-btn" class="btn btn-danger">Confirm Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Create/Edit Modal -->
+  <div id="profile-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="profile-modal-title" class="modal-title">Create Handwriting Profile</h3>
+        <button id="profile-modal-close" class="btn-icon" aria-label="Close">&times;</button>
+      </div>
+      <form id="profile-form">
+        <input type="hidden" id="profile-form-id" value="">
+        <div class="form-group">
+          <label for="profile-form-name" class="form-label">Profile Name <span class="required">*</span></label>
+          <input type="text" id="profile-form-name" class="form-input" placeholder="e.g. Elegant Cursive, John's Print" required maxlength="100">
+        </div>
+        <div class="form-group">
+          <label for="profile-form-desc" class="form-label">Description</label>
+          <textarea id="profile-form-desc" class="form-textarea" placeholder="Notes about this handwriting style..." rows="3"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="profile-modal-cancel" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="profile-form-submit" class="btn btn-primary">
+            <span class="btn-text">Save Profile</span>
+            <span class="spinner hidden"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Document Text Modal / Drawer -->
+  <div id="document-text-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <div>
+          <h3 id="doc-modal-title" class="modal-title">Document Extracted Text</h3>
+          <p id="doc-modal-subtitle" class="modal-subtitle">PDF Details & Extracted Pages</p>
+        </div>
+        <button id="doc-modal-close" class="btn-icon" aria-label="Close">&times;</button>
+      </div>
+      <div class="doc-text-meta">
+        <span class="badge badge-info" id="doc-meta-status">Status: Completed</span>
+        <span class="meta-item" id="doc-meta-pages">1 Page(s)</span>
+        <span class="meta-item" id="doc-meta-size">0 KB</span>
+      </div>
+      <div class="text-viewer-box">
+        <pre id="doc-text-content" class="text-content">No text extracted.</pre>
+      </div>
+      <div class="modal-actions space-between">
+        <button id="copy-text-btn" class="btn btn-secondary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          Copy Text
+        </button>
+        <button id="doc-modal-close-btn" class="btn btn-primary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Wrapper -->
+  <div class="app-wrapper">
+    <!-- Navigation Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div class="brand-titles">
+          <h1 class="brand-title">HandWrite Me</h1>
+          <span class="brand-tagline">Profile Collector & Document Extractor</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-view="dashboard">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          Dashboard
+        </button>
+        <button class="nav-tab" data-view="profiles">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          Profiles
+        </button>
+        <button class="nav-tab" data-view="samples">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          Sample Studio
+        </button>
+        <button class="nav-tab" data-view="documents">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          PDF Processing
+        </button>
+      </nav>
+
+      <div class="header-status">
+        <span id="api-status-badge" class="status-indicator offline">
+          <span class="status-dot"></span>
+          <span id="api-status-text">Checking API...</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="view-dashboard" class="view-panel active">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">System Overview</h2>
+            <p class="panel-subtitle">Live analytics & quick actions</p>
+          </div>
+          <button id="dash-refresh-btn" class="btn btn-outline">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Refresh Data
+          </button>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon icon-purple">
+              <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-label">Handwriting Profiles</span>
+              <span class="metric-value" id="stat-profiles-count">0</span>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon icon-blue">
+              <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-label">Character Samples</span>
+              <span class="metric-value" id="stat-samples-count">0</span>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon icon-emerald">
+              <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-label">Uploaded Documents</span>
+              <span class="metric-value" id="stat-docs-count">0</span>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon icon-amber">
+              <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-label">Extracted Pages</span>
+              <span class="metric-value" id="stat-pages-count">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions & Recent Documents -->
+        <div class="dashboard-grid">
+          <div class="card glass-card">
+            <h3 class="card-title">Quick Launch</h3>
+            <div class="quick-actions-list">
+              <button class="action-tile" id="dash-action-create-profile">
+                <div class="tile-icon icon-purple"><svg width="20" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg></div>
+                <div class="tile-info">
+                  <span class="tile-title">New Handwriting Profile</span>
+                  <span class="tile-desc">Register a new profile for sample grouping</span>
+                </div>
+              </button>
+              <button class="action-tile" id="dash-action-upload-sample">
+                <div class="tile-icon icon-blue"><svg width="20" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg></div>
+                <div class="tile-info">
+                  <span class="tile-title">Upload Character Sample</span>
+                  <span class="tile-desc">Add image sample for a character</span>
+                </div>
+              </button>
+              <button class="action-tile" id="dash-action-upload-doc">
+                <div class="tile-icon icon-emerald"><svg width="20" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg></div>
+                <div class="tile-info">
+                  <span class="tile-title">Upload PDF Document</span>
+                  <span class="tile-desc">Extract text & persist metadata</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="card glass-card">
+            <div class="card-header space-between">
+              <h3 class="card-title">Recent Documents</h3>
+              <button class="btn-link" id="dash-view-all-docs">View All</button>
+            </div>
+            <div id="dash-recent-docs-list" class="recent-docs-container">
+              <div class="empty-placeholder">Loading recent documents...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: HANDWRITING PROFILES -->
+      <section id="view-profiles" class="view-panel">
+        <div class="panel-header space-between">
+          <div>
+            <h2 class="panel-title">Handwriting Profiles</h2>
+            <p class="panel-subtitle">Manage handwriting style profiles</p>
+          </div>
+          <button id="open-create-profile-btn" class="btn btn-primary">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Create New Profile
+          </button>
+        </div>
+
+        <div id="profiles-grid" class="profiles-grid">
+          <div class="empty-placeholder">Loading handwriting profiles...</div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: CHARACTER SAMPLE STUDIO -->
+      <section id="view-samples" class="view-panel">
+        <div class="panel-header space-between">
+          <div>
+            <h2 class="panel-title">Character Sample Studio</h2>
+            <p class="panel-subtitle">Upload & manage character samples per profile</p>
+          </div>
+          <div class="profile-select-wrapper">
+            <label for="sample-active-profile-select" class="form-label inline-label">Active Profile:</label>
+            <select id="sample-active-profile-select" class="form-select">
+              <option value="">-- Select Profile --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sample-studio-layout">
+          <!-- Upload Form Card -->
+          <div class="card glass-card upload-card">
+            <h3 class="card-title">Upload New Sample</h3>
+            <form id="sample-upload-form">
+              <div class="form-group">
+                <label for="sample-char-input" class="form-label">Character Label <span class="required">*</span></label>
+                <input type="text" id="sample-char-input" class="form-input" placeholder="e.g. A, b, 7, ?" required maxlength="10">
+              </div>
+              <div class="form-group">
+                <label for="sample-type-input" class="form-label">Sample Type</label>
+                <select id="sample-type-input" class="form-select">
+                  <option value="image">Image (PNG, JPEG, WEBP, GIF)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sample Image File <span class="required">*</span> (Max 5MB)</label>
+                <div id="sample-dropzone" class="dropzone">
+                  <svg class="dropzone-icon" width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <p class="dropzone-text">Drag & drop image here or <span class="browse-link">browse</span></p>
+                  <span class="dropzone-sub">PNG, JPEG, WEBP, GIF up to 5MB</span>
+                  <input type="file" id="sample-file-input" class="hidden-file-input" accept="image/png,image/jpeg,image/webp,image/gif">
+                </div>
+                <div id="sample-file-preview" class="file-preview-container hidden">
+                  <img id="sample-preview-img" src="" alt="Preview" class="preview-thumb">
+                  <div class="file-info">
+                    <span id="sample-file-name" class="file-name">filename.png</span>
+                    <span id="sample-file-size" class="file-size">0 KB</span>
+                  </div>
+                  <button type="button" id="sample-remove-file-btn" class="btn-icon danger-icon">&times;</button>
+                </div>
+              </div>
+
+              <button type="submit" id="sample-upload-submit" class="btn btn-primary btn-block" disabled>
+                <span class="btn-text">Upload Sample</span>
+                <span class="spinner hidden"></span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Samples Gallery -->
+          <div class="card glass-card gallery-card">
+            <div class="card-header space-between">
+              <h3 class="card-title">Sample Gallery</h3>
+              <div id="sample-filter-tags" class="filter-tags">
+                <button class="filter-tag active" data-char="ALL">ALL</button>
+              </div>
+            </div>
+            <div id="samples-gallery-grid" class="gallery-grid">
+              <div class="empty-placeholder">Select a profile to view character samples.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: PDF DOCUMENT PROCESSING -->
+      <section id="view-documents" class="view-panel">
+        <div class="panel-header space-between">
+          <div>
+            <h2 class="panel-title">PDF Document Processing</h2>
+            <p class="panel-subtitle">Upload PDF, extract text, & inspect document metadata</p>
+          </div>
+        </div>
+
+        <div class="documents-layout">
+          <!-- Upload PDF Card -->
+          <div class="card glass-card">
+            <h3 class="card-title">Upload New PDF Document</h3>
+            <form id="doc-upload-form">
+              <div class="doc-upload-grid">
+                <div class="form-group">
+                  <label for="doc-assoc-profile-select" class="form-label">Associate with Profile (Optional):</label>
+                  <select id="doc-assoc-profile-select" class="form-select">
+                    <option value="">-- None (Standalone Document) --</option>
+                  </select>
+                </div>
+
+                <div class="form-group span-2">
+                  <div id="doc-dropzone" class="dropzone">
+                    <svg class="dropzone-icon" width="36" height="36" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 0115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    <p class="dropzone-text">Drag & drop PDF document here or <span class="browse-link">browse</span></p>
+                    <span class="dropzone-sub">PDF files up to 10MB</span>
+                    <input type="file" id="doc-file-input" class="hidden-file-input" accept="application/pdf">
+                  </div>
+                  <div id="doc-file-preview" class="file-preview-container hidden">
+                    <div class="pdf-icon-badge">PDF</div>
+                    <div class="file-info">
+                      <span id="doc-file-name" class="file-name">document.pdf</span>
+                      <span id="doc-file-size" class="file-size">0 KB</span>
+                    </div>
+                    <button type="button" id="doc-remove-file-btn" class="btn-icon danger-icon">&times;</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" id="doc-upload-submit" class="btn btn-primary" disabled>
+                  <span class="btn-text">Upload & Extract Text</span>
+                  <span class="spinner hidden"></span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Documents List Table Card -->
+          <div class="card glass-card">
+            <div class="card-header space-between flex-wrap">
+              <h3 class="card-title">Processed Documents</h3>
+              <div class="table-filters">
+                <select id="doc-filter-profile" class="form-select form-select-sm">
+                  <option value="">All Profiles</option>
+                </select>
+                <select id="doc-filter-status" class="form-select form-select-sm">
+                  <option value="">All Statuses</option>
+                  <option value="completed">Completed (Text Extracted)</option>
+                  <option value="no_text">No Extractable Text</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Document Name</th>
+                    <th>Size</th>
+                    <th>Pages</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="docs-table-body">
+                  <tr>
+                    <td colspan="6" class="text-center">Loading documents...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>HandWrite Me — FastAPI Backend Template & Profile Processing System</p>
+    </footer>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

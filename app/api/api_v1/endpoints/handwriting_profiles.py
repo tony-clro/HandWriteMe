@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 from app import actions, models
 from app.api import deps
 from app.core.config import settings
+from app.services.storage import StorageService
 
 router = APIRouter()
 
@@ -16,6 +17,8 @@ MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 def _build_image_url(file_path: str) -> str | None:
+    if file_path.startswith("http://") or file_path.startswith("https://"):
+        return file_path
     filename = Path(file_path).name
     base_url = getattr(settings, "STORAGE_BASE_URL", "/uploads") or "/uploads"
     return f"{base_url.rstrip('/')}/samples/{filename}"
@@ -114,11 +117,7 @@ def delete_handwriting_profile(
     )
     samples = db.exec(statement).all()
     for sample in samples:
-        if sample.file_path and os.path.exists(sample.file_path):
-            try:
-                os.remove(sample.file_path)
-            except OSError:
-                pass
+        StorageService.delete_file(sample.file_path)
         actions.character_sample_action.delete(session=db, id=sample.id)
 
     # Disassociate documents
@@ -135,7 +134,6 @@ def delete_handwriting_profile(
 
 
 # --- Character Sample Endpoints ---
-
 
 
 @router.post(
@@ -184,19 +182,10 @@ def upload_character_sample(
             detail="Uploaded file is empty",
         )
 
-    # Prepare storage directory
-    base_storage = Path(settings.STORAGE_PATH or "./uploads")
-    samples_dir = base_storage / "samples"
-    samples_dir.mkdir(parents=True, exist_ok=True)
-
-    # Generate unique filename
+    # Save via StorageService
     unique_filename = f"sample_{uuid.uuid4().hex}{ext}"
-    target_path = samples_dir / unique_filename
+    file_path_str, public_url = StorageService.save_file(contents, "samples", unique_filename)
 
-    with open(target_path, "wb") as f:
-        f.write(contents)
-
-    file_path_str = str(target_path)
     sample_in = models.CharacterSampleCreate(
         profile_id=profile_id,
         character=character,
@@ -206,7 +195,7 @@ def upload_character_sample(
     sample = actions.character_sample_action.create(session=db, data=sample_in)
 
     res = models.CharacterSampleRead.model_validate(sample)
-    res.image_url = _build_image_url(file_path_str)
+    res.image_url = public_url or _build_image_url(file_path_str)
     return res
 
 
@@ -283,11 +272,6 @@ def delete_character_sample(
             detail="Character sample not found",
         )
 
-    # Safely remove file on disk
-    if sample.file_path and os.path.exists(sample.file_path):
-        try:
-            os.remove(sample.file_path)
-        except OSError:
-            pass
-
+    StorageService.delete_file(sample.file_path)
     actions.character_sample_action.delete(session=db, id=sample_id)
+

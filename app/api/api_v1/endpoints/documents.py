@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from app import actions, models
 from app.api import deps
 from app.core.config import settings
+from app.services.storage import StorageService
 
 router = APIRouter()
 
@@ -67,22 +68,9 @@ def upload_document(
             detail="Invalid or corrupted PDF document",
         )
 
-    # Prepare storage path
-    base_storage = Path(settings.STORAGE_PATH or "./uploads")
-    docs_dir = base_storage / "documents"
-    docs_dir.mkdir(parents=True, exist_ok=True)
-
+    # Save via StorageService
     unique_filename = f"doc_{uuid.uuid4().hex}.pdf"
-    target_path = docs_dir / unique_filename
-
-    try:
-        with open(target_path, "wb") as f:
-            f.write(contents)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not save file to disk",
-        )
+    file_path_str, _ = StorageService.save_file(contents, "documents", unique_filename)
 
     # Text extraction
     extracted_pages = []
@@ -101,7 +89,7 @@ def upload_document(
         doc_in = models.DocumentCreate(
             filename=file.filename or "document.pdf",
             stored_filename=unique_filename,
-            file_path=str(target_path),
+            file_path=file_path_str,
             file_size=len(contents),
             status=doc_status,
             page_count=page_count,
@@ -111,12 +99,7 @@ def upload_document(
         document = actions.document_action.create(session=db, data=doc_in)
         return document
     except Exception:
-        # Cleanup file if DB creation fails
-        if target_path.exists():
-            try:
-                os.remove(target_path)
-            except OSError:
-                pass
+        StorageService.delete_file(file_path_str)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not store document in database",
@@ -201,7 +184,7 @@ def delete_document(
     db: Session = Depends(deps.get_session),
 ) -> None:
     """
-    Delete a document record and remove its stored file from disk.
+    Delete a document record and remove its stored file.
     """
     document = actions.document_action.get(session=db, id=document_id)
     if not document:
@@ -210,11 +193,7 @@ def delete_document(
             detail="Document not found",
         )
 
-    if document.file_path and os.path.exists(document.file_path):
-        try:
-            os.remove(document.file_path)
-        except OSError:
-            pass
-
+    StorageService.delete_file(document.file_path)
     actions.document_action.delete(session=db, id=document_id)
+
 

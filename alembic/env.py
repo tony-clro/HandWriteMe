@@ -32,14 +32,28 @@ target_metadata = SQLModel.metadata
 
 def get_url():
     core_settings = settings.scope("CORE")
-    if core_settings.USE_SQLITE:
+    env_use_sqlite = os.getenv("USE_SQLITE")
+    use_sqlite = (
+        (env_use_sqlite.lower() in ("true", "1", "yes"))
+        if env_use_sqlite is not None
+        else getattr(core_settings, "USE_SQLITE", True)
+    )
+
+    if use_sqlite:
         return core_settings.SQLITE_DATABASE_URI
+    db_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    if db_url:
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        return db_url
     user = settings.POSTGRES_USER
     password = settings.POSTGRES_PASSWORD
     server = settings.POSTGRES_SERVER
     db = settings.POSTGRES_DB
     port = settings.POSTGRES_PORT
     return f"postgresql://{user}:{password}@{server}:{port}/{db}"
+
+
 
 
 def run_migrations_offline() -> None:
