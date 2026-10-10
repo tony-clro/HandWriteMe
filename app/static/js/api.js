@@ -33,7 +33,14 @@ class ApiClient {
   }
 
   async request(endpoint, options = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
+    let cleanEndpoint = endpoint || '';
+    if (cleanEndpoint.startsWith('/api/v1')) {
+      cleanEndpoint = cleanEndpoint.substring(7);
+    }
+    if (!cleanEndpoint.startsWith('/')) {
+      cleanEndpoint = '/' + cleanEndpoint;
+    }
+    const url = `${this.baseUrl}${cleanEndpoint}`;
     const headers = options.headers || {};
 
     if (!(options.body instanceof FormData) && !headers['Content-Type'] && options.body) {
@@ -63,7 +70,7 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        let errorMsg = 'An API error occurred';
+        let errorMsg = `API Error (${response.status})`;
         if (data && typeof data === 'object') {
           if (data.detail) {
             errorMsg = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
@@ -71,13 +78,17 @@ class ApiClient {
             errorMsg = data.message;
           }
         }
-        throw new Error(errorMsg);
+        const err = new Error(errorMsg);
+        err.status = response.status;
+        throw err;
       }
 
       return data;
     } catch (error) {
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        throw new Error('Unable to connect to the backend server. Please verify the server is running.');
+      if (error.name === 'TypeError' || (error.message && error.message.toLowerCase().includes('fetch'))) {
+        const netErr = new Error('Unable to connect to the backend server. Please verify the server is running.');
+        netErr.isNetworkError = true;
+        throw netErr;
       }
       throw error;
     }

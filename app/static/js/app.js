@@ -70,7 +70,13 @@ class HandWriteApp {
       text.textContent = 'API Connected';
     } catch (e) {
       badge.className = 'status-indicator offline';
-      text.textContent = 'API Offline';
+      if (e.isNetworkError) {
+        text.textContent = 'API Offline';
+      } else if (e.status) {
+        text.textContent = `API Error (${e.status})`;
+      } else {
+        text.textContent = 'API Offline';
+      }
     }
   }
 
