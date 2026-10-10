@@ -1,0 +1,30 @@
+Metadata-Version: 2.4
+Name: msf-fastapi
+Version: 0.1.0
+Summary: MSF FastAPI Backend
+Author: Aniebiet Udoh
+Author-email: almaudoh@gmail.com
+Requires-Python: >=3.10,<3.15
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Requires-Dist: alembic (>=1.13,<2.0)
+Requires-Dist: celery[redis] (>=5.3,<6.0)
+Requires-Dist: email-validator (>=2.3.0,<3.0.0)
+Requires-Dist: langchain-google-genai (>=4.2.7,<5.0.0)
+Requires-Dist: msflib @ git+https://github.com/msflib/fastapi.git@core-v0.2.1#subdirectory=core
+Requires-Dist: msflib-account @ git+https://github.com/msflib/fastapi.git@account-v0.2.2#subdirectory=modules/account
+Requires-Dist: msflib-ai-api @ git+https://github.com/msflib/fastapi.git@ai_api-v0.2.0#subdirectory=modules/ai_api
+Requires-Dist: msflib-ai-core[huggingface,openrouter] @ git+https://github.com/msflib/fastapi.git@ai_core-v0.2.1#subdirectory=modules/ai_core
+Requires-Dist: msflib-auth @ git+https://github.com/msflib/fastapi.git@auth-v0.2.2#subdirectory=modules/auth
+Requires-Dist: msflib-documents @ git+https://github.com/msflib/fastapi.git@documents-v0.2.0#subdirectory=modules/documents
+Requires-Dist: msflib-ingestion @ git+https://github.com/msflib/fastapi.git@ingestion-v0.2.0#subdirectory=modules/ingestion
+Requires-Dist: msflib-knowledge @ git+https://github.com/msflib/fastapi.git@knowledge-v0.2.0#subdirectory=modules/knowledge
+Requires-Dist: msflib-tenancy @ git+https://github.com/msflib/fastapi.git@tenancy-v0.2.0#subdirectory=modules/tenancy
+Requires-Dist: msflib-workspaces @ git+https://github.com/msflib/fastapi.git@workspaces-v0.2.1#subdirectory=modules/workspaces
+Requires-Dist: psycopg2-binary (>=2.9.0,<3.0.0)
+Requires-Dist: pypdf (>=6.20.0,<7.0.0)
+Requires-Dist: tenacity (>=8.2,<9.0)
